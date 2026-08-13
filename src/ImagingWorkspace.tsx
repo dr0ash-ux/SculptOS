@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Enums, RenderingEngine, init as cornerstoneInit } from '@cornerstonejs/core'
+import { Enums, RenderingEngine, init as cornerstoneInit, type IStackViewport } from '@cornerstonejs/core'
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader'
-import { getStudyBundle, getStudies, getWadoRsImageId, uploadDicomFile, type OrthancSeries, type OrthancStudy } from './services/orthanc'
+import { getStudyBundle, getStudies, getWadoRsImageId, uploadDicomFile, type OrthancStudy, type OrthancSeries } from './services/orthanc'
 import './imaging-workspace.css'
 
 type SeriesWithInstances = OrthancSeries & {
@@ -44,7 +44,7 @@ function DicomViewport({ series }: { series: SeriesWithInstances }) {
         const engine = new RenderingEngine(engineId)
         engineRef.current = engine
         engine.enableElement({ viewportId, element: elementRef.current, type: Enums.ViewportType.STACK })
-        const viewport = engine.getViewport(viewportId)
+        const viewport = engine.getViewport<IStackViewport>(viewportId)
         await viewport.setStack(imageIds, Math.floor(imageIds.length / 2))
         viewport.render()
         if (!disposed) setStatus(`${imageIds.length} images · WADO-RS`)
@@ -59,7 +59,7 @@ function DicomViewport({ series }: { series: SeriesWithInstances }) {
 
 export default function ImagingWorkspace() {
   const [screen, setScreen] = useState<'import' | 'viewer'>('import')
-  const [studies, setStudies] = useState<OrthancStudy[]>([])
+  const [, setStudies] = useState<OrthancStudy[]>([])
   const [selectedStudy, setSelectedStudy] = useState<OrthancStudy | null>(null)
   const [series, setSeries] = useState<SeriesWithInstances[]>([])
   const [selectedSeries, setSelectedSeries] = useState<SeriesWithInstances | null>(null)
@@ -89,7 +89,6 @@ export default function ImagingWorkspace() {
   }
 
   const clearQueue = () => { if (!importing) setImportQueue([]) }
-  const removeQueuedFile = (id: string) => { if (!importing) setImportQueue((current) => current.filter((item) => item.id !== id)) }
 
   const importAll = async () => {
     if (importing) return
@@ -118,13 +117,6 @@ export default function ImagingWorkspace() {
       const populated = bundle.series.map((item) => ({ ...item, parentStudyTags: latest.MainDicomTags })) as SeriesWithInstances[]
       setSelectedStudy(latest); setSeries(populated); setSelectedSeries(populated[0] || null); setScreen('viewer')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to open the DICOM viewer.') } finally { setLoading(false) }
-  }
-
-  const selectStudy = async (study: OrthancStudy) => {
-    setSelectedStudy(study); setSelectedSeries(null); setSeries([]); setLoading(true)
-    try { const bundle = await getStudyBundle(study.ID); setSeries(bundle.series.map((item) => ({ ...item, parentStudyTags: study.MainDicomTags })) as SeriesWithInstances[]) }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to read study series.') }
-    finally { setLoading(false) }
   }
 
   if (screen === 'viewer') return <div className="imaging-workspace imaging-viewer-page">
