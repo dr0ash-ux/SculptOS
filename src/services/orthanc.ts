@@ -1,4 +1,4 @@
-const ORTHANC_BASE_URL = import.meta.env.VITE_ORTHANC_URL || 'http://localhost:8042'
+const ORTHANC_BASE_URL = import.meta.env.VITE_ORTHANC_URL || '/orthanc'
 
 export type OrthancStudy = {
   ID: string
