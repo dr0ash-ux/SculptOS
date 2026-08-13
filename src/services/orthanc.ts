@@ -37,6 +37,12 @@ async function orthancFetch<T>(path: string, options?: RequestInit): Promise<T> 
   return response.json() as Promise<T>
 }
 
+function resourceId(value: string | { ID?: string }): string {
+  const id = typeof value === 'string' ? value : value?.ID
+  if (!id) throw new Error('Orthanc returned a resource without an ID.')
+  return id
+}
+
 export async function checkOrthanc(): Promise<boolean> {
   try {
     await orthancFetch('/system')
@@ -62,22 +68,22 @@ export async function uploadDicomFile(file: File): Promise<{ ID: string; ParentP
 }
 
 export async function getStudies(): Promise<OrthancStudy[]> {
-  const ids = await orthancFetch<string[]>('/studies')
-  return Promise.all(ids.map((id) => orthancFetch<OrthancStudy>(`/studies/${id}`)))
+  const ids = await orthancFetch<Array<string | { ID?: string }>>('/studies')
+  return Promise.all(ids.map((value) => orthancFetch<OrthancStudy>(`/studies/${encodeURIComponent(resourceId(value))}`)))
 }
 
 export async function getSeries(studyId: string): Promise<OrthancSeries[]> {
-  const ids = await orthancFetch<string[]>(`/studies/${studyId}/series`)
-  return Promise.all(ids.map((id) => orthancFetch<OrthancSeries>(`/series/${id}`)))
+  const values = await orthancFetch<Array<string | { ID?: string }>>(`/studies/${encodeURIComponent(studyId)}/series`)
+  return Promise.all(values.map((value) => orthancFetch<OrthancSeries>(`/series/${encodeURIComponent(resourceId(value))}`)))
 }
 
 export async function getInstances(seriesId: string): Promise<OrthancInstance[]> {
-  const ids = await orthancFetch<string[]>(`/series/${seriesId}/instances`)
-  return Promise.all(ids.map((id) => orthancFetch<OrthancInstance>(`/instances/${id}`)))
+  const values = await orthancFetch<Array<string | { ID?: string }>>(`/series/${encodeURIComponent(seriesId)}/instances`)
+  return Promise.all(values.map((value) => orthancFetch<OrthancInstance>(`/instances/${encodeURIComponent(resourceId(value))}`)))
 }
 
 export async function getStudyBundle(studyId: string) {
-  const study = await orthancFetch<OrthancStudy>(`/studies/${studyId}`)
+  const study = await orthancFetch<OrthancStudy>(`/studies/${encodeURIComponent(studyId)}`)
   const series = await getSeries(studyId)
   const populatedSeries = await Promise.all(series.map(async (item) => ({
     ...item,
