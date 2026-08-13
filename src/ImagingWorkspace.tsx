@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Enums, RenderingEngine, init as cornerstoneInit } from '@cornerstonejs/core'
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader'
-import { getSeries, getStudies, getStudyBundle, getWadoRsImageId, uploadDicomFile, type OrthancSeries, type OrthancStudy } from './services/orthanc'
+import { getStudyBundle, getStudies, getWadoRsImageId, uploadDicomFile, type OrthancSeries, type OrthancStudy } from './services/orthanc'
 import './imaging-workspace.css'
 
-type SeriesWithInstances = OrthancSeries & { instances: Array<{ ID: string; MainDicomTags?: Record<string, string> }> }
+type SeriesWithInstances = OrthancSeries & {
+  instances: Array<{ ID: string; MainDicomTags?: Record<string, string> }>
+  parentStudyTags?: Record<string, string>
+}
 
 let cornerstoneReady: Promise<void> | null = null
 
@@ -44,7 +47,7 @@ function DicomViewport({ series }: { series: SeriesWithInstances }) {
           .filter(Boolean)
           .map((sopUID) => getWadoRsImageId(studyUID, seriesUID, sopUID))
 
-        if (!imageIds.length) throw new Error('This series has no readable DICOM instances.')
+        if (!studyUID || !seriesUID || !imageIds.length) throw new Error('This series has no complete DICOM UIDs.')
 
         const engine = new RenderingEngine(engineId)
         engineRef.current = engine
@@ -85,10 +88,7 @@ export default function ImagingWorkspace() {
       const result = await getStudies()
       setStudies(result)
       setOnline(true)
-      if (selectedStudy) {
-        const fresh = result.find((study) => study.ID === selectedStudy.ID) || null
-        setSelectedStudy(fresh)
-      }
+      if (selectedStudy) setSelectedStudy(result.find((study) => study.ID === selectedStudy.ID) || null)
     } catch (error) {
       setOnline(false)
       setMessage(error instanceof Error ? error.message : 'Orthanc is unavailable.')
@@ -105,13 +105,8 @@ export default function ImagingWorkspace() {
     setSeries([])
     setLoading(true)
     try {
-      const studySeries = await getSeries(study.ID)
-      const populated = await Promise.all(studySeries.map(async (item) => ({
-        ...item,
-        instances: (await getStudyBundle(study.ID)).series.find((s) => s.ID === item.ID)?.instances || [],
-        parentStudyTags: study.MainDicomTags,
-      })))
-      setSeries(populated as SeriesWithInstances[])
+      const bundle = await getStudyBundle(study.ID)
+      setSeries(bundle.series.map((item) => ({ ...item, parentStudyTags: study.MainDicomTags })))
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to read study series.')
     } finally {
