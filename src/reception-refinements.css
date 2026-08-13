@@ -17,5 +17,13 @@
 .prescription-patient { border:1px solid #e4e9ea; }
 .prescription-line { grid-template-columns:1.1fr 1fr; }
 .appointment-modal .form-grid { grid-template-columns:1fr 1fr; }
+
+/* Keep the clinical UI clean: headings stand on their own without instructional copy. */
+.form-page .page-heading .subheading,
+.form-page .section-title > div > p,
+.form-page .prescription-actions > span,
+.form-page .photo-note,
+.appointment-modal .modal-footer > span { display:none !important; }
+
 @media (max-width:760px) { .heading-actions { justify-content:flex-start; } .reception-book-row { align-items:flex-start; flex-direction:column; } .prescription-form-actions { justify-content:flex-start; flex-wrap:wrap; } .appointment-modal .form-grid { grid-template-columns:1fr; } }
 @media print { .small-print-button { display:none !important; } .print-sheet .rx { display:block !important; } }
