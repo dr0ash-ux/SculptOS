@@ -2,147 +2,119 @@ import { useMemo, useState } from 'react'
 import './App.css'
 
 type NavItem = { label: string; icon: string }
+type FileAsset = { name: string; kind: string }
+type Doctor = { id: string; name: string; color: string }
+type Appointment = { id: string; patientId: string; doctorId: string; date: string; time: string; reminder: boolean }
+type Prescription = { medication: string; dose: string; frequency: string; duration: string; instructions: string }
 type Patient = {
-  initials: string
-  name: string
-  id: string
-  procedure: string
-  status: 'Planning' | 'Review' | 'Imaging' | 'Ready'
-  updated: string
-  age: number
-  sex: string
+  initials: string; name: string; id: string; age: number; gender: string; location: string; occupation: string; reference: string; phone: string; email: string
+  chiefComplaint: string; historyPresentIllness: string; medicalHistory: string; clinicalFindings: string; primaryDiagnosis: string; finalDiagnosis: string
+  procedure: string; status: 'Planning' | 'Review' | 'Imaging' | 'Ready'; updated: string; files: FileAsset[]; prescriptions: Prescription[]
 }
 
 const navItems: NavItem[] = [
-  { label: 'Overview', icon: 'grid' },
-  { label: 'Patients', icon: 'users' },
-  { label: 'Imaging', icon: 'scan' },
-  { label: 'Planning', icon: 'layers' },
-  { label: 'Reports', icon: 'file' },
+  { label: 'Overview', icon: 'grid' }, { label: 'Patients', icon: 'users' }, { label: 'Imaging', icon: 'scan' }, { label: 'Planning', icon: 'layers' }, { label: 'Reports', icon: 'file' },
 ]
-
+const doctors: Doctor[] = [
+  { id: 'd1', name: 'Dr. Aishwarya Jain', color: 'doctor-a' },
+  { id: 'd2', name: 'Dr. ________', color: 'doctor-b' },
+  { id: 'd3', name: 'Dr. ________', color: 'doctor-c' },
+]
+const hours = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
 const initialPatients: Patient[] = [
-  { initials: 'AR', name: 'Aarav Rao', id: 'SC-1024', procedure: 'Orthognathic planning', status: 'Planning', updated: 'Today, 10:42', age: 24, sex: 'M' },
-  { initials: 'MS', name: 'Meera Shah', id: 'SC-1023', procedure: 'Aligner planning', status: 'Review', updated: 'Today, 09:18', age: 21, sex: 'F' },
-  { initials: 'VK', name: 'Vikram Kumar', id: 'SC-1022', procedure: 'CBCT analysis', status: 'Imaging', updated: 'Yesterday', age: 29, sex: 'M' },
-  { initials: 'NP', name: 'Nisha Patel', id: 'SC-1021', procedure: 'Surgical simulation', status: 'Ready', updated: 'Yesterday', age: 26, sex: 'F' },
-  { initials: 'RK', name: 'Rohan Kapoor', id: 'SC-1020', procedure: 'Bimaxillary planning', status: 'Planning', updated: '12 Aug', age: 31, sex: 'M' },
-  { initials: 'SI', name: 'Sara Iyer', id: 'SC-1019', procedure: 'TMJ assessment', status: 'Review', updated: '11 Aug', age: 27, sex: 'F' },
+  { initials: 'AR', name: 'Aarav Rao', id: 'SC-1024', age: 24, gender: 'Male', location: 'Hyderabad', occupation: 'Software engineer', reference: 'Dr. Mehta', phone: '+91 90000 00001', email: 'aarav@example.com', chiefComplaint: 'Difficulty chewing and facial imbalance', historyPresentIllness: 'Progressive bite discrepancy for 3 years.', medicalHistory: 'No significant medical history reported.', clinicalFindings: 'Skeletal Class III tendency; mandibular asymmetry.', primaryDiagnosis: 'Skeletal Class III malocclusion', finalDiagnosis: '', procedure: 'Orthognathic planning', status: 'Planning', updated: 'Today, 10:42', files: [], prescriptions: [] },
+  { initials: 'MS', name: 'Meera Shah', id: 'SC-1023', age: 21, gender: 'Female', location: 'Secunderabad', occupation: 'Student', reference: 'Self', phone: '+91 90000 00002', email: 'meera@example.com', chiefComplaint: 'Crowding of lower anterior teeth', historyPresentIllness: 'Crowding noticed since adolescence.', medicalHistory: 'Nil significant.', clinicalFindings: 'Moderate anterior crowding.', primaryDiagnosis: 'Malocclusion with dental crowding', finalDiagnosis: '', procedure: 'Aligner planning', status: 'Review', updated: 'Today, 09:18', files: [], prescriptions: [] },
+  { initials: 'VK', name: 'Vikram Kumar', id: 'SC-1022', age: 29, gender: 'Male', location: 'Hyderabad', occupation: 'Architect', reference: 'Dr. Rao', phone: '+91 90000 00003', email: 'vikram@example.com', chiefComplaint: 'Jaw pain', historyPresentIllness: 'Intermittent preauricular pain for 6 months.', medicalHistory: 'No known allergies reported.', clinicalFindings: 'Tenderness over TMJ region.', primaryDiagnosis: 'TMJ disorder - evaluation', finalDiagnosis: '', procedure: 'CBCT analysis', status: 'Imaging', updated: 'Yesterday', files: [{ name: 'CBCT_1022.zip', kind: 'CBCT / DICOM' }], prescriptions: [] },
+  { initials: 'NP', name: 'Nisha Patel', id: 'SC-1021', age: 26, gender: 'Female', location: 'Hyderabad', occupation: 'Designer', reference: 'Dr. Shah', phone: '+91 90000 00004', email: 'nisha@example.com', chiefComplaint: 'Facial asymmetry', historyPresentIllness: 'Longstanding facial asymmetry.', medicalHistory: 'Nil significant.', clinicalFindings: 'Chin deviation to left.', primaryDiagnosis: 'Facial asymmetry', finalDiagnosis: 'Skeletal facial asymmetry', procedure: 'Surgical simulation', status: 'Ready', updated: 'Yesterday', files: [], prescriptions: [] },
 ]
 
 function Icon({ name }: { name: string }) {
   const paths: Record<string, string> = {
-    grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
-    users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-    scan: 'M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M7 8h10v8H7z',
-    layers: 'm12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5',
-    file: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6',
-    plus: 'M12 5v14M5 12h14',
-    bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
-    search: 'm21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
-    arrow: 'M5 12h14M13 6l6 6-6 6',
-    chevron: 'm9 18 6-6-6-6',
-    close: 'M6 6l12 12M18 6 6 18',
-    filter: 'M4 6h16M7 12h10M10 18h4',
+    grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z', users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+    scan: 'M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M7 8h10v8H7z', layers: 'm12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5',
+    file: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6', plus: 'M12 5v14M5 12h14', bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
+    search: 'm21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z', arrow: 'M5 12h14M13 6l6 6-6 6', chevron: 'm9 18 6-6-6-6', close: 'M6 6l12 12M18 6 6 18', filter: 'M4 6h16M7 12h10M10 18h4', calendar: 'M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z', print: 'M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z', save: 'M5 3h12l3 3v15H4V3h13M8 3v6h8V3', upload: 'M12 16V4M7 9l5-5 5 5M4 20h16', clock: 'M12 7v5l3 2', whatsapp: 'M6 19l1-3a7 7 0 1 1 3 3l-4 1Z',
   }
-
   return <svg viewBox="0 0 24 24" aria-hidden="true" className="icon"><path d={paths[name]} /></svg>
 }
 
-function Dashboard({ onNewPatient, patients }: { onNewPatient: () => void; patients: Patient[] }) {
-  const recentPatients = patients.slice(0, 4)
-  return (
-    <>
-      <section className="page-heading">
-        <div><p className="eyebrow">THURSDAY, 13 AUGUST 2026</p><h1>Good afternoon, Dr. Jain.</h1><p className="subheading">Your surgical planning workspace is ready.</p></div>
-        <button className="primary-button" onClick={onNewPatient}><Icon name="plus" />New patient</button>
-      </section>
-      <section className="stats-grid">
-        <article className="stat-card"><span>Active patients</span><strong>{patients.length}</strong><small><b>+3</b> this month</small></article>
-        <article className="stat-card"><span>Plans in progress</span><strong>{patients.filter((p) => p.status === 'Planning').length + 5}</strong><small><b>3</b> need review</small></article>
-        <article className="stat-card"><span>Imaging studies</span><strong>42</strong><small><b>6</b> uploaded this week</small></article>
-        <article className="stat-card accent-card"><span>Ready for simulation</span><strong>{patients.filter((p) => p.status === 'Ready').length + 4}</strong><small>Cases with complete datasets</small></article>
-      </section>
-      <section className="workspace-grid">
-        <article className="panel patients-panel">
-          <div className="panel-header"><div><p className="eyebrow">PATIENT WORKSPACE</p><h2>Recent patients</h2></div><button className="text-button" onClick={() => undefined}>View all <Icon name="arrow" /></button></div>
-          <div className="patient-list">{recentPatients.map((patient) => <PatientRow key={patient.id} patient={patient} />)}</div>
-        </article>
-        <QuickActions onNewPatient={onNewPatient} />
-      </section>
-      <section className="bottom-grid">
-        <article className="panel timeline-panel"><div className="panel-header"><div><p className="eyebrow">TODAY</p><h2>Clinical activity</h2></div></div><div className="timeline"><div><span className="timeline-dot" /><div><strong>CBCT imported</strong><p>Vikram Kumar · 09:42</p></div></div><div><span className="timeline-dot" /><div><strong>Plan marked ready</strong><p>Nisha Patel · 08:56</p></div></div><div><span className="timeline-dot" /><div><strong>Patient record created</strong><p>Aarav Rao · 08:21</p></div></div></div></article>
-        <article className="panel readiness-panel"><div className="readiness-copy"><p className="eyebrow">DATA READINESS</p><h2>Build the complete patient dataset</h2><p>Combine CBCT/DICOM, intraoral scans and treatment records in one planning workspace.</p><button className="secondary-button">Explore imaging <Icon name="arrow" /></button></div><div className="readiness-graphic"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit-core">3D</div></div></article>
-      </section>
-    </>
-  )
+const blankPatient: Patient = { initials: '', name: '', id: '', age: 0, gender: '', location: '', occupation: '', reference: '', phone: '', email: '', chiefComplaint: '', historyPresentIllness: '', medicalHistory: '', clinicalFindings: '', primaryDiagnosis: '', finalDiagnosis: '', procedure: '', status: 'Imaging', updated: 'Just now', files: [], prescriptions: [] }
+
+function Field({ label, value, onChange, multiline = false, type = 'text', placeholder = '' }: { label: string; value: string | number; onChange: (v: string) => void; multiline?: boolean; type?: string; placeholder?: string }) {
+  return <label className={multiline ? 'field field-wide' : 'field'}><span>{label}</span>{multiline ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3} /> : <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />}</label>
 }
 
-function PatientRow({ patient, onClick }: { patient: Patient; onClick?: () => void }) {
-  return <button className="patient-row" onClick={onClick}><div className="patient-avatar">{patient.initials}</div><div className="patient-main"><strong>{patient.name}</strong><span>{patient.id} · {patient.procedure}</span></div><span className={`status status-${patient.status.toLowerCase()}`}>{patient.status}</span><span className="patient-date">{patient.updated}</span><Icon name="chevron" /></button>
-}
-
-function QuickActions({ onNewPatient }: { onNewPatient: () => void }) {
-  return <article className="panel quick-panel"><div className="panel-header"><div><p className="eyebrow">QUICK ACTIONS</p><h2>Start a workflow</h2></div></div><div className="quick-actions"><button onClick={onNewPatient}><span className="action-icon"><Icon name="users" /></span><span><strong>Add patient</strong><small>Create a new clinical record</small></span><Icon name="chevron" /></button><button><span className="action-icon"><Icon name="scan" /></span><span><strong>Open imaging</strong><small>Review a DICOM study</small></span><Icon name="chevron" /></button><button><span className="action-icon"><Icon name="layers" /></span><span><strong>New treatment plan</strong><small>Begin a 3D planning workflow</small></span><Icon name="chevron" /></button></div></article>
-}
-
-function PatientsPage({ patients, onNewPatient }: { patients: Patient[]; onNewPatient: () => void }) {
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('All')
-  const filtered = useMemo(() => patients.filter((p) => {
-    const matchesQuery = `${p.name} ${p.id} ${p.procedure}`.toLowerCase().includes(query.toLowerCase())
-    const matchesStatus = status === 'All' || p.status === status
-    return matchesQuery && matchesStatus
-  }), [patients, query, status])
-
-  return <>
-    <section className="page-heading"><div><p className="eyebrow">PATIENT MANAGEMENT</p><h1>Patients</h1><p className="subheading">Manage clinical records and move cases into imaging and planning.</p></div><button className="primary-button" onClick={onNewPatient}><Icon name="plus" />New patient</button></section>
-    <section className="patient-toolbar panel"><div className="patient-search"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by patient name, ID or procedure" /></div><div className="filter-wrap"><Icon name="filter" /><select value={status} onChange={(e) => setStatus(e.target.value)}><option>All</option><option>Planning</option><option>Review</option><option>Imaging</option><option>Ready</option></select></div></section>
-    <section className="panel patient-table-panel"><div className="patient-table-head"><span>Patient</span><span>Clinical workflow</span><span>Status</span><span>Last updated</span></div><div className="patient-list">{filtered.map((patient) => <PatientRow key={patient.id} patient={patient} />)}{filtered.length === 0 && <div className="empty-state"><strong>No patients found</strong><span>Try another search or create a new patient record.</span></div>}</div></section>
-  </>
-}
-
-function PlaceholderPage({ title, eyebrow, description, icon }: { title: string; eyebrow: string; description: string; icon: string }) {
-  return <section className="placeholder-page"><div className="placeholder-icon"><Icon name={icon} /></div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p><span className="coming-soon">MODULE FOUNDATION</span></section>
-}
-
-function NewPatientModal({ onClose, onCreate }: { onClose: () => void; onCreate: (patient: Patient) => void }) {
-  const [name, setName] = useState('')
-  const [age, setAge] = useState('')
-  const [sex, setSex] = useState('')
-  const [procedure, setProcedure] = useState('')
-  const canCreate = name.trim() && age && sex && procedure
-
-  const create = () => {
-    if (!canCreate) return
-    const parts = name.trim().split(/\s+/)
-    const initials = parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase()
-    onCreate({ initials, name: name.trim(), id: `SC-${1025 + Math.floor(Math.random() * 50)}`, procedure, status: 'Imaging', updated: 'Just now', age: Number(age), sex })
+function PatientForm({ patient, onSave, onCancel }: { patient?: Patient; onSave: (p: Patient) => void; onCancel: () => void }) {
+  const [form, setForm] = useState<Patient>(patient || blankPatient)
+  const [files, setFiles] = useState<FileAsset[]>(patient?.files || [])
+  const set = (key: keyof Patient, value: string | number) => setForm((p) => ({ ...p, [key]: value }))
+  const upload = (kind: string, file?: File) => { if (file) setFiles((current) => [...current, { name: file.name, kind }]) }
+  const save = () => {
+    if (!form.name.trim()) return
+    const parts = form.name.trim().split(/\s+/)
+    onSave({ ...form, initials: parts.slice(0, 2).map((x) => x[0]).join('').toUpperCase(), id: form.id || `SC-${1025 + Math.floor(Math.random() * 900)}`, age: Number(form.age) || 0, files, updated: 'Just now' })
   }
+  const assetBox = (label: string, kind: string, hint: string) => <div className="upload-card"><div className="upload-icon"><Icon name={kind === 'CBCT / DICOM' ? 'scan' : kind === 'Intraoral scan / STL' ? 'layers' : 'upload'} /></div><div><strong>{label}</strong><small>{files.filter((f) => f.kind === kind).map((f) => f.name).join(', ') || hint}</small></div><label className="upload-button">Upload<input type="file" accept={kind === 'CBCT / DICOM' ? '.dcm,.zip' : kind === 'Intraoral scan / STL' ? '.stl' : 'image/*'} onChange={(e) => upload(kind, e.target.files?.[0])} /></label>{files.some((f) => f.kind === kind) && <button className="viewer-button" onClick={() => alert(kind === 'CBCT / DICOM' ? 'DICOM viewer integration is the next imaging step.' : 'STL viewer integration is the next 3D step.')}>Open</button>}</div>
+  return <div className="form-page">
+    <section className="page-heading"><div><p className="eyebrow">PATIENT DATA</p><h1>{patient ? `Edit ${patient.name}` : 'New patient record'}</h1><p className="subheading">Capture the complete clinical record before moving into imaging and planning.</p></div><div className="heading-actions"><button className="secondary-button" onClick={onCancel}>Cancel</button><button className="primary-button" onClick={save}><Icon name="save" />Save patient</button></div></section>
+    <section className="form-section panel"><div className="section-title"><span>01</span><div><h2>Patient information</h2><p>Demographics and contact details.</p></div></div><div className="form-grid wide"><Field label="Name *" value={form.name} onChange={(v) => set('name', v)} /><Field label="Age" type="number" value={form.age} onChange={(v) => set('age', v)} /><label className="field"><span>Gender</span><select value={form.gender} onChange={(e) => set('gender', e.target.value)}><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select></label><Field label="Location" value={form.location} onChange={(v) => set('location', v)} /><Field label="Occupation" value={form.occupation} onChange={(v) => set('occupation', v)} /><Field label="Reference of (if any)" value={form.reference} onChange={(v) => set('reference', v)} /><Field label="Phone number" value={form.phone} onChange={(v) => set('phone', v)} /><Field label="Email ID" type="email" value={form.email} onChange={(v) => set('email', v)} /></div></section>
+    <section className="form-section panel"><div className="section-title"><span>02</span><div><h2>Clinical history & findings</h2><p>Structured clinical documentation.</p></div></div><div className="form-grid"><Field label="Chief complaint" value={form.chiefComplaint} onChange={(v) => set('chiefComplaint', v)} multiline /><Field label="History of present illness" value={form.historyPresentIllness} onChange={(v) => set('historyPresentIllness', v)} multiline /><Field label="Medical history" value={form.medicalHistory} onChange={(v) => set('medicalHistory', v)} multiline /><Field label="Clinical findings" value={form.clinicalFindings} onChange={(v) => set('clinicalFindings', v)} multiline /><Field label="Primary diagnosis" value={form.primaryDiagnosis} onChange={(v) => set('primaryDiagnosis', v)} /><Field label="Final diagnosis" value={form.finalDiagnosis} onChange={(v) => set('finalDiagnosis', v)} /></div></section>
+    <section className="form-section panel"><div className="section-title"><span>03</span><div><h2>Imaging & clinical media</h2><p>Upload source files now; viewer integrations will open them in their dedicated workspace.</p></div></div><div className="upload-grid">{assetBox('Patient photographs', 'Patient photographs', 'JPG / PNG')}{assetBox('OPG', 'OPG', 'Panoramic radiograph')}{assetBox('CBCT / DICOM', 'CBCT / DICOM', 'DICOM series or ZIP')}{assetBox('Intraoral scan / STL', 'Intraoral scan / STL', 'STL mesh')}{assetBox('Intraoral photos', 'Intraoral photos', 'JPG / PNG')}{assetBox('Extraoral photos', 'Extraoral photos', 'JPG / PNG')}</div></section>
+    <section className="form-section panel"><div className="section-title"><span>04</span><div><h2>Prescription</h2><p>Prescriptions will use the doctor's registered clinic profile automatically.</p></div></div><PrescriptionEditor prescriptions={form.prescriptions} onChange={(prescriptions) => setForm((p) => ({ ...p, prescriptions }))} /><div className="form-actions"><button className="secondary-button" onClick={() => window.print()}><Icon name="print" />Print patient record</button><button className="primary-button" onClick={save}><Icon name="save" />Save record</button></div></section>
+  </div>
+}
 
-  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-header"><div><p className="eyebrow">NEW CLINICAL RECORD</p><h2>Create patient</h2></div><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close" /></button></div><div className="form-grid"><label>Patient name<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" /></label><label>Age<input type="number" min="1" max="120" value={age} onChange={(e) => setAge(e.target.value)} placeholder="Age" /></label><label>Sex<select value={sex} onChange={(e) => setSex(e.target.value)}><option value="">Select</option><option>F</option><option>M</option><option>Other</option></select></label><label>Primary workflow<select value={procedure} onChange={(e) => setProcedure(e.target.value)}><option value="">Select workflow</option><option>Orthognathic planning</option><option>Aligner planning</option><option>CBCT analysis</option><option>Surgical simulation</option><option>TMJ assessment</option></select></label></div><div className="modal-footer"><span>Patient records stay in this local prototype for now.</span><div><button className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={!canCreate} onClick={create}>Create patient</button></div></div></div></div>
+function PrescriptionEditor({ prescriptions, onChange }: { prescriptions: Prescription[]; onChange: (p: Prescription[]) => void }) {
+  const add = () => onChange([...prescriptions, { medication: '', dose: '', frequency: '', duration: '', instructions: '' }])
+  const update = (i: number, key: keyof Prescription, value: string) => onChange(prescriptions.map((p, index) => index === i ? { ...p, [key]: value } : p))
+  return <div className="prescription-editor"><div className="prescription-actions"><span>Doctor and clinic header: <b>configured after registration</b></span><button className="secondary-button" onClick={add}><Icon name="plus" />Add medicine</button></div>{prescriptions.map((p, i) => <div className="medicine-row" key={i}><input placeholder="Medication" value={p.medication} onChange={(e) => update(i, 'medication', e.target.value)} /><input placeholder="Dose" value={p.dose} onChange={(e) => update(i, 'dose', e.target.value)} /><input placeholder="Frequency" value={p.frequency} onChange={(e) => update(i, 'frequency', e.target.value)} /><input placeholder="Duration" value={p.duration} onChange={(e) => update(i, 'duration', e.target.value)} /><input placeholder="Instructions" value={p.instructions} onChange={(e) => update(i, 'instructions', e.target.value)} /></div>)}{prescriptions.length === 0 && <div className="empty-inline">No medicines added. Click “Add medicine” to start a prescription.</div>}<div className="prescription-footer"><div className="doctor-profile-placeholder"><strong>Dr. ____________________</strong><span>Clinic / Hospital: ______________________________</span><span>Address: _______________________________________</span><span>Website: __________________ · Email: __________________</span></div></div></div>
+}
+
+function PatientProfile({ patient, onBack, onEdit, onPrescription }: { patient: Patient; onBack: () => void; onEdit: () => void; onPrescription: () => void }) {
+  const info = [['Age', patient.age], ['Gender', patient.gender], ['Location', patient.location], ['Occupation', patient.occupation], ['Reference', patient.reference], ['Phone', patient.phone], ['Email', patient.email]]
+  return <div className="profile-page"><div className="profile-top"><button className="text-button" onClick={onBack}>← Back to patients</button><div className="heading-actions"><button className="secondary-button" onClick={() => window.print()}><Icon name="print" />Print</button><button className="secondary-button" onClick={onPrescription}>Prescription</button><button className="primary-button" onClick={onEdit}>Edit patient</button></div></div><div className="profile-hero panel"><div className="patient-avatar large">{patient.initials}</div><div><p className="eyebrow">{patient.id}</p><h1>{patient.name}</h1><p>{patient.procedure} · {patient.primaryDiagnosis || 'Diagnosis pending'}</p></div><span className={`status status-${patient.status.toLowerCase()}`}>{patient.status}</span></div><section className="profile-grid"><article className="panel profile-card"><div className="panel-header"><div><p className="eyebrow">DEMOGRAPHICS</p><h2>Patient information</h2></div></div><div className="info-grid">{info.map(([k, v]) => <div key={String(k)}><span>{k}</span><strong>{v || '—'}</strong></div>)}</div></article><article className="panel profile-card"><div className="panel-header"><div><p className="eyebrow">DIAGNOSIS</p><h2>Clinical summary</h2></div></div><div className="summary-list"><div><span>Chief complaint</span><p>{patient.chiefComplaint || '—'}</p></div><div><span>History of present illness</span><p>{patient.historyPresentIllness || '—'}</p></div><div><span>Medical history</span><p>{patient.medicalHistory || '—'}</p></div><div><span>Clinical findings</span><p>{patient.clinicalFindings || '—'}</p></div><div><span>Primary diagnosis</span><p>{patient.primaryDiagnosis || '—'}</p></div><div><span>Final diagnosis</span><p>{patient.finalDiagnosis || '—'}</p></div></div></article></section><section className="panel profile-card"><div className="panel-header"><div><p className="eyebrow">MEDIA</p><h2>Uploaded studies</h2></div></div><div className="asset-list">{patient.files.length ? patient.files.map((f, i) => <div className="asset-row" key={`${f.name}-${i}`}><Icon name={f.kind.includes('DICOM') ? 'scan' : 'file'} /><div><strong>{f.kind}</strong><span>{f.name}</span></div><button className="secondary-button" onClick={() => alert(f.kind.includes('DICOM') ? 'DICOM viewer integration will open here.' : 'Dedicated viewer integration will open here.')}>Open</button></div>) : <div className="empty-inline">No imaging or photographs uploaded yet.</div>}</div></section></div>
+}
+
+function PrescriptionPage({ patient, onBack }: { patient: Patient; onBack: () => void }) {
+  return <div className="prescription-page"><div className="print-actions"><button className="text-button" onClick={onBack}>← Back to patient</button><div className="heading-actions"><button className="secondary-button" onClick={() => window.print()}><Icon name="print" />Print / Save PDF</button><button className="secondary-button" onClick={() => alert('WhatsApp integration will be added in a later phase.')}><Icon name="whatsapp" />Send via WhatsApp</button></div></div><article className="prescription-sheet"><header className="prescription-header"><div><div className="clinic-logo-placeholder">LOGO</div></div><div className="clinic-details"><h1>Dr. ______________________________</h1><p>Clinic / Hospital: __________________________________</p><p>Address: _________________________________________</p><p>Website: __________________ · Email: __________________</p></div></header><div className="rx-title">PRESCRIPTION</div><div className="patient-prescription-meta"><span><b>Patient:</b> {patient.name}</span><span><b>Age:</b> {patient.age}</span><span><b>Gender:</b> {patient.gender}</span><span><b>ID:</b> {patient.id}</span><span><b>Date:</b> {new Date().toLocaleDateString()}</span></div><div className="rx-symbol">℞</div><div className="rx-table"><div className="rx-head"><span>Medicine</span><span>Dose</span><span>Frequency</span><span>Duration</span><span>Instructions</span></div>{patient.prescriptions.length ? patient.prescriptions.map((p, i) => <div className="rx-row" key={i}><span>{p.medication || '—'}</span><span>{p.dose || '—'}</span><span>{p.frequency || '—'}</span><span>{p.duration || '—'}</span><span>{p.instructions || '—'}</span></div>) : <div className="empty-inline">No medicines prescribed.</div>}</div><div className="rx-notes"><strong>Clinical notes</strong><p>{patient.finalDiagnosis || patient.primaryDiagnosis || '—'}</p></div><footer className="signature"><span>Doctor signature: __________________________</span><span>Registration no.: __________________</span></footer></article></div>
+}
+
+function NewAppointmentModal({ date, time, onClose, onCreate, patients }: { date: string; time: string; onClose: () => void; onCreate: (a: Appointment) => void; patients: Patient[] }) {
+  const [patientId, setPatientId] = useState(patients[0]?.id || '')
+  const [doctorId, setDoctorId] = useState(doctors[0].id)
+  const [reminder, setReminder] = useState(true)
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal appointment-modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-header"><div><p className="eyebrow">APPOINTMENT</p><h2>Book appointment</h2><p className="subheading">{date} · {time}</p></div><button className="icon-button" onClick={onClose}><Icon name="close" /></button></div><div className="form-grid appointment-form"><label className="field field-wide"><span>Patient</span><select value={patientId} onChange={(e) => setPatientId(e.target.value)}>{patients.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.id}</option>)}</select></label><label className="field"><span>Doctor</span><select value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>{doctors.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="field"><span>Date</span><input type="date" value={date} readOnly /></label><label className="field"><span>Time</span><input value={time} readOnly /></label><label className="field checkbox"><input type="checkbox" checked={reminder} onChange={(e) => setReminder(e.target.checked)} />Send appointment reminder</label></div><div className="modal-footer"><span>Reminder integration can be connected later.</span><div><button className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" onClick={() => onCreate({ id: crypto.randomUUID(), patientId, doctorId, date, time, reminder })}>Book appointment</button></div></div></div></div>
+}
+
+function AppointmentGrid({ patients, appointments, onBook, onPatient }: { patients: Patient[]; appointments: Appointment[]; onBook: (date: string, time: string) => void; onPatient: (patient: Patient) => void }) {
+  const date = new Date().toISOString().slice(0, 10)
+  return <section className="panel appointments-panel"><div className="panel-header"><div><p className="eyebrow">TEAM SCHEDULE</p><h2>Appointments</h2><p className="subheading">Click any time slot to book. Doctor colors make team ownership visible at a glance.</p></div><button className="secondary-button"><Icon name="calendar" />Today</button></div><div className="doctor-legend">{doctors.map((d) => <span key={d.id}><i className={d.color} />{d.name}</span>)}</div><div className="appointment-grid"><div className="time-column"><div className="grid-corner" />{hours.map((h) => <div className="time-label" key={h}>{h}</div>)}</div>{doctors.map((doctor) => <div className="doctor-column" key={doctor.id}><div className={`doctor-head ${doctor.color}`}>{doctor.name}</div>{hours.map((time) => { const a = appointments.find((x) => x.date === date && x.time === time && x.doctorId === doctor.id); const p = a && patients.find((x) => x.id === a.patientId); return <button key={time} className={`slot ${a ? 'booked' : ''}`} onClick={() => a && p ? onPatient(p) : onBook(date, time)}>{a && p ? <><strong>{p.name}</strong><span>{p.procedure}</span></> : <span>+</span>}</button> })}</div>)}</div></section>
+}
+
+function Dashboard({ patients, appointments, onNewPatient, onBook, onPatient }: { patients: Patient[]; appointments: Appointment[]; onNewPatient: () => void; onBook: (date: string, time: string) => void; onPatient: (p: Patient) => void }) {
+  return <><section className="page-heading"><div><p className="eyebrow">THURSDAY, 13 AUGUST 2026</p><h1>Good afternoon, Dr. Jain.</h1><p className="subheading">Your surgical planning workspace is ready.</p></div><button className="primary-button" onClick={onNewPatient}><Icon name="plus" />New patient</button></section><section className="stats-grid"><article className="stat-card"><span>Active patients</span><strong>{patients.length}</strong><small><b>+3</b> this month</small></article><article className="stat-card"><span>Plans in progress</span><strong>{patients.filter((p) => p.status === 'Planning').length + 5}</strong><small><b>3</b> need review</small></article><article className="stat-card"><span>Imaging studies</span><strong>42</strong><small><b>6</b> uploaded this week</small></article><article className="stat-card accent-card"><span>Ready for simulation</span><strong>{patients.filter((p) => p.status === 'Ready').length + 4}</strong><small>Cases with complete datasets</small></article></section><AppointmentGrid patients={patients} appointments={appointments} onBook={onBook} onPatient={onPatient} /><section className="workspace-grid"><article className="panel patients-panel"><div className="panel-header"><div><p className="eyebrow">PATIENT WORKSPACE</p><h2>Recent patients</h2></div></div><div className="patient-list">{patients.slice(0, 4).map((p) => <button className="patient-row" key={p.id} onClick={() => onPatient(p)}><div className="patient-avatar">{p.initials}</div><div className="patient-main"><strong>{p.name}</strong><span>{p.id} · {p.procedure}</span></div><span className={`status status-${p.status.toLowerCase()}`}>{p.status}</span><span className="patient-date">{p.updated}</span><Icon name="chevron" /></button>)}</div></article><article className="panel quick-panel"><div className="panel-header"><div><p className="eyebrow">QUICK ACTIONS</p><h2>Start a workflow</h2></div></div><div className="quick-actions"><button onClick={onNewPatient}><span className="action-icon"><Icon name="users" /></span><span><strong>Add patient</strong><small>Create a new clinical record</small></span><Icon name="chevron" /></button><button onClick={() => onBook(new Date().toISOString().slice(0, 10), '09:00')}><span className="action-icon"><Icon name="calendar" /></span><span><strong>Book appointment</strong><small>Open today's team schedule</small></span><Icon name="chevron" /></button><button><span className="action-icon"><Icon name="scan" /></span><span><strong>Open imaging</strong><small>Review a DICOM study</small></span><Icon name="chevron" /></button></div></article></section></>
+}
+
+function PatientsPage({ patients, onNewPatient, onPatient }: { patients: Patient[]; onNewPatient: () => void; onPatient: (p: Patient) => void }) {
+  const [query, setQuery] = useState(''); const [status, setStatus] = useState('All')
+  const filtered = useMemo(() => patients.filter((p) => `${p.name} ${p.id} ${p.procedure}`.toLowerCase().includes(query.toLowerCase()) && (status === 'All' || p.status === status)), [patients, query, status])
+  return <><section className="page-heading"><div><p className="eyebrow">PATIENT MANAGEMENT</p><h1>Patients</h1><p className="subheading">Open a patient to view the complete clinical record.</p></div><button className="primary-button" onClick={onNewPatient}><Icon name="plus" />New patient</button></section><section className="patient-toolbar panel"><div className="patient-search"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search patient name, ID or procedure" /></div><div className="filter-wrap"><Icon name="filter" /><select value={status} onChange={(e) => setStatus(e.target.value)}><option>All</option><option>Planning</option><option>Review</option><option>Imaging</option><option>Ready</option></select></div></section><section className="panel patient-table-panel"><div className="patient-table-head"><span>Patient</span><span>Clinical workflow</span><span>Status</span><span>Updated</span></div><div className="patient-list">{filtered.map((p) => <button className="patient-row" key={p.id} onClick={() => onPatient(p)}><div className="patient-avatar">{p.initials}</div><div className="patient-main"><strong>{p.name}</strong><span>{p.id} · {p.age} yrs · {p.gender} · {p.procedure}</span></div><span className={`status status-${p.status.toLowerCase()}`}>{p.status}</span><span className="patient-date">{p.updated}</span><Icon name="chevron" /></button>)}{filtered.length === 0 && <div className="empty-state"><strong>No patients found</strong><span>Try another search or create a new patient.</span></div>}</div></section></>
 }
 
 function App() {
-  const [active, setActive] = useState('Overview')
-  const [patients, setPatients] = useState(initialPatients)
-  const [showNewPatient, setShowNewPatient] = useState(false)
-
-  const createPatient = (patient: Patient) => {
-    setPatients((current) => [patient, ...current])
-    setShowNewPatient(false)
-    setActive('Patients')
+  const [active, setActive] = useState('Overview'); const [patients, setPatients] = useState(initialPatients); const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [showNew, setShowNew] = useState(false); const [showAppointment, setShowAppointment] = useState<{ date: string; time: string } | null>(null); const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null); const [editing, setEditing] = useState(false); const [prescriptionView, setPrescriptionView] = useState(false)
+  const savePatient = (p: Patient) => { setPatients((current) => { const exists = current.some((x) => x.id === p.id); return exists ? current.map((x) => x.id === p.id ? p : x) : [p, ...current] }); setShowNew(false); setEditing(false); setSelectedPatient(p); setActive('Patients') }
+  const openPatient = (p: Patient) => { setSelectedPatient(p); setEditing(false); setPrescriptionView(false) }
+  const render = () => {
+    if (selectedPatient && prescriptionView) return <PrescriptionPage patient={selectedPatient} onBack={() => setPrescriptionView(false)} />
+    if (selectedPatient && editing) return <PatientForm patient={selectedPatient} onSave={savePatient} onCancel={() => setEditing(false)} />
+    if (selectedPatient) return <PatientProfile patient={selectedPatient} onBack={() => setSelectedPatient(null)} onEdit={() => setEditing(true)} onPrescription={() => setPrescriptionView(true)} />
+    if (active === 'Patients') return <PatientsPage patients={patients} onNewPatient={() => setShowNew(true)} onPatient={openPatient} />
+    if (active === 'Overview') return <Dashboard patients={patients} appointments={appointments} onNewPatient={() => setShowNew(true)} onBook={(date, time) => setShowAppointment({ date, time })} onPatient={openPatient} />
+    const title = active === 'Imaging' ? 'Imaging' : active === 'Planning' ? 'Treatment planning' : 'Reports'; const icon = active === 'Imaging' ? 'scan' : active === 'Planning' ? 'layers' : 'file'; return <section className="placeholder-page"><div className="placeholder-icon"><Icon name={icon} /></div><p className="eyebrow">{active.toUpperCase()}</p><h1>{title}</h1><p>This module is intentionally scaffolded. The patient record, DICOM/STL viewers and planning engine will connect here.</p><span className="coming-soon">MODULE FOUNDATION</span></section>
   }
-
-  const renderPage = () => {
-    if (active === 'Overview') return <Dashboard patients={patients} onNewPatient={() => setShowNewPatient(true)} />
-    if (active === 'Patients') return <PatientsPage patients={patients} onNewPatient={() => setShowNewPatient(true)} />
-    if (active === 'Imaging') return <PlaceholderPage eyebrow="IMAGING WORKSPACE" title="Imaging" description="The DICOM and CBCT workspace will connect to the imaging viewer and patient studies here." icon="scan" />
-    if (active === 'Planning') return <PlaceholderPage eyebrow="3D PLANNING" title="Treatment planning" description="This workspace will become the core 3D surgical planning environment for CBCT, STL and virtual simulation." icon="layers" />
-    return <PlaceholderPage eyebrow="CLINICAL REPORTING" title="Reports" description="Generate structured clinical and treatment-planning reports from completed patient workflows." icon="file" />
-  }
-
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">S</div><div><strong>SculptOS</strong><span>Clinical workspace</span></div></div><div className="workspace-label">WORKSPACE</div><nav>{navItems.map((item) => <button key={item.label} className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => setActive(item.label)}><Icon name={item.icon} /><span>{item.label}</span></button>)}</nav><div className="sidebar-bottom"><button className="nav-item"><Icon name="file" /><span>Settings</span></button><div className="user-card"><div className="avatar">AJ</div><div className="user-copy"><strong>Dr. Aishwarya Jain</strong><span>Maxillofacial Surgery</span></div><Icon name="chevron" /></div></div></aside><main className="main-content"><header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span>/</span><strong>{active}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Search"><Icon name="search" /></button><button className="icon-button notification" aria-label="Notifications"><Icon name="bell" /><span /></button><div className="mini-avatar">AJ</div></div></header><div className="content">{renderPage()}</div></main>{showNewPatient && <NewPatientModal onClose={() => setShowNewPatient(false)} onCreate={createPatient} />}</div>
+  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">S</div><div><strong>SculptOS</strong><span>Clinical workspace</span></div></div><div className="workspace-label">WORKSPACE</div><nav>{navItems.map((item) => <button key={item.label} className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => { setActive(item.label); setSelectedPatient(null) }}><Icon name={item.icon} /><span>{item.label}</span></button>)}</nav><div className="sidebar-bottom"><button className="nav-item"><Icon name="file" /><span>Settings</span></button><div className="user-card"><div className="avatar">AJ</div><div className="user-copy"><strong>Dr. Aishwarya Jain</strong><span>Maxillofacial Surgery</span></div><Icon name="chevron" /></div></div></aside><main className="main-content"><header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span>/</span><strong>{selectedPatient ? selectedPatient.name : active}</strong></div><div className="topbar-actions"><button className="icon-button"><Icon name="search" /></button><button className="icon-button notification"><Icon name="bell" /><span /></button><div className="mini-avatar">AJ</div></div></header><div className="content">{render()}</div></main>{showNew && <div className="modal-backdrop"><div className="modal large-modal"><PatientForm onSave={savePatient} onCancel={() => setShowNew(false)} /></div></div>}{showAppointment && <NewAppointmentModal date={showAppointment.date} time={showAppointment.time} patients={patients} onClose={() => setShowAppointment(null)} onCreate={(a) => { setAppointments((x) => [...x, a]); setShowAppointment(null) }} />}</div>
 }
 
 export default App
